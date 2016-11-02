@@ -1,6 +1,6 @@
 # Machine Learning
 Some simple machine learning functions are implemented
-# DataSet
+## DataSet
 The dataset we use is MNIST
 ## Functions that we implemented
 * Logistic Regression

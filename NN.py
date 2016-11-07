@@ -12,13 +12,11 @@ def data_std(x):
 def load_dataset():
     mndata = MNIST('./data/')
     X_train, labels_train = map(np.array, mndata.load_training())
-    # The test labels are meaningless,
-    # since you're replacing the official MNIST test set with our own test set
-    X_test, _ = map(np.array, mndata.load_testing())
-    # Remember to center and normalize the data...
+    X_test, labels_test = map(np.array, mndata.load_testing())
+    # Data Normalization
     X_train1 = data_std(X_train)
     X_test1 = data_std(X_test)
-    return X_train1, labels_train, X_test1
+    return X_train1, labels_train, X_test1, labels_test
 
 def one_hot(labels_train):
     '''Convert categorical labels 0,1,2,....9 to standard basis vectors in R^{10} '''
@@ -43,49 +41,67 @@ def split(train,label):
     label1 = np.asarray([label[i] for i in range(0,50000)])
     label2 = np.asarray([label[i] for i in range(50000,60000)])
     return train1,train2,label1,label2
-
-def NeuralNet(nin,nhid,nout,train,label,epsilon,iteration,decay):
+def accu(a,b):
+    b = a + b/a*10
+    acc = float(a)/b
+    print "The predict accuracy is %s " %acc
+    
+def NeuralNet(nin,nhid,nout,train,label,epsilon,iteration,decay,batch_size):
     #v n_hid * (n_in+1) matrix
     v = np.random.random((nhid,(nin+1)))-1  
     #w n_out * (n_hid+1) matrix
     w = np.random.random((nout,(nhid+1)))-1
     a,b = train.shape
+    loss_array= np.zeros((1,1))
     for i in range (0,iteration):
+        data_index = np.random.choice(a,size = batch_size, replace=True,p=None)
+        X_batch = np.take(train,data_index,axis=0)
+        Y_batch = np.take(label,data_index,axis=0)
         #forward propagation
-        hin = np.dot(v,train[i%a])
-        h2 = np.maximum(hin,0)
-        h3 = h2.reshape((1,nhid))
+        hin = np.dot(v,X_batch.T)
+        h2 = np.maximum(hin,0.0)
+        h3 = h2.reshape((batch_size,nhid))
         hout = add_bias(h3)
         hout = hout.T
         yin = np.dot(w,hout)#z2
         y1 = np.argmax(yin)
-        yout = np.exp(yin-yin[y1]) / np.sum(np.exp(yin-yin[y1]), axis=0)
-        #yout = np.exp(yin) / np.sum(np.exp(yin), axis=0)
+        #print yin.shape
+        #print y1
+        #yout = np.exp(yin-yin[y1]) / np.sum(np.exp(yin-yin[y1]), axis=0)
+        yout = np.exp(yin) / np.sum(np.exp(yin), axis=0)
+        yout = yout.T
+        loss = np.sum(-np.log(yout[np.arange(batch_size),Y_batch]))
+        loss /= batch_size
+        one_hot = np.zeros_like(yout)
+        one_hot[np.arange(batch_size),Y_batch]=1.0
         #backward propagation
-        y = label[i%a].reshape(10,1)
-        loss = float(np.dot(y.T,-np.log(yout)))
-        if i%10000==0:
+        #y = label[i%a].reshape(10,1)
+        #loss = float(np.dot(y.T,-np.log(yout)))
+        if i%100==0:
             print "loss is %s" %loss
-            print epsilon*(decay**(i/(2*a)))
-        delta_w = np.dot((yout - y),hout.T)
+            loss_array= np.append(loss_array,loss)
+            
+        delta_w = np.dot((yout - one_hot).T,hout.T)
+        delta_w /= batch_size
         #w_nobias = np.delete(w,200,1)
-        
-        x=train[i%a].reshape(785,1)
-        w_y=np.dot(w.T,(yout-y))
-        w_nobias = np.delete(w_y,200,0)
+        #x=train[i%a].reshape(785,1)
+        delta_h=np.dot(w.T,(yout-one_hot).T)
+        w_nobias = np.delete(delta_h,200,0)
         dh = np.maximum(w_nobias,0.0)
-        delta_v = np.dot(dh,x.T)
+        delta_v = np.dot(dh,X_batch)
 
         w -= epsilon*(decay**(i/(2*a)))*delta_w
         v -= epsilon*(decay**(i/(2*a)))*delta_v
         
     np.savetxt('w.csv', w, delimiter=',')
     np.savetxt('v.csv',v,delimiter=',')
+    np.savetxt('loss.csv',loss_array,delimiter=',')
     return w,v
 
 def predict(x,y,w,v):
     a,b= x.shape
     hit = 0
+    y_prediction = np.array((0,0))
     for j in range(0,a):
         hin= np.dot(v,x[j])
         h2 = np.maximum(hin,0)
@@ -95,28 +111,57 @@ def predict(x,y,w,v):
         yin = np.dot(w,hout)
         yout = np.exp(yin) / np.sum(np.exp(yin), axis=0)
         y_1= yout.argmax(axis=0)
+        y_prediction = np.append(y_prediction,y_1)
         y_pre = np.zeros((10,1))
-        y_pre[y_1]=1
-        if y[j][y_1]==y_pre[y_1]:
-            hit +=1
-    acc = float(hit)/a
-    print "The predict accuracy is %s (%s/%s)" %(acc,hit,a)
-        
+        y_pre[y_1]=1        
+        y_real = np.eye(NUM_CLASSES)[y[j]]
+        if y_real[y_1]==y_pre[y_1]:
+            hit +=1     
+    accu(hit,a)
+    return y_prediction
+
+def predict_test(x,y,w,v):
+    a,b= x.shape
+    hit = 0
+    y_prediction = np.array((0,0))
+    for j in range(0,a):
+        hin= np.dot(v,x[j])
+        h2 = np.maximum(hin,0)
+        h3 = h2.reshape(1,200)
+        hout = add_bias(h3)
+        hout = hout.T
+        yin = np.dot(w,hout)
+        yout = np.exp(yin) / np.sum(np.exp(yin), axis=0)
+        y_1= yout.argmax(axis=0)
+        y_prediction = np.append(y_prediction,y_1)
+        y_pre = np.zeros((10,1))
+        y_pre[y_1]=1        
+        y_real = np.eye(NUM_CLASSES)[y[j]]
+        if y_real[y_1]==y_pre[y_1]:
+            hit +=1     
+    return y_prediction
     
-
-
-X_train, labels_train, X_test = load_dataset()
-y_train = one_hot(labels_train)
 hid_num = 200
 in_num = 784
 out_num = 10
+
+X_train, labels_train, X_test,labels_test = load_dataset()
+#y_train = one_hot(labels_train)
 X_train_bias = add_bias(X_train)
-x_shu,y_shu = shuffle(X_train_bias,y_train)
+x_shu,y_shu = shuffle(X_train_bias,labels_train)
 x_tra,x_val,y_tra,y_val = split(x_shu,y_shu)
 
-w = np.zeros((out_num,hid_num+1))
-v = np.zeros((hid_num,in_num+1))
-w,v=NeuralNet(in_num,hid_num,out_num,x_tra,y_tra,0.001,50000,0.95,20)
+#w = np.zeros((out_num,hid_num+1))
+w = np.loadtxt("w.csv",delimiter=',')
+#v = np.zeros((hid_num,in_num+1))
+v = np.loadtxt("v.csv",delimiter=',')
+w,v=NeuralNet(in_num,hid_num,out_num,x_tra,y_tra,5e-5,500000,0.9,20)
+print "===============Training Accuracy================"
 predict(x_tra,y_tra,w,v)
+print "===============Validation Accuracy================"
+predict(x_val,y_val,w,v)
+
+x_test_bias = add_bias(X_test)
+predict_test(x_test_bias,labels_test,w,v)
 
 

@@ -1,7 +1,7 @@
 # Machine Learning
 Some simple machine learning functions are implemented
 ## DataSet
-The dataset we use is MNIST
+The dataset we use is MNIST and also classic Spam dataset
 ## Functions that we implemented
 * Logistic Regression
 * Back Propagation Neural Network

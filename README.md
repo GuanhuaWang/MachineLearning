@@ -7,3 +7,4 @@ The dataset we use is MNIST and also classic Spam dataset
 * Back Propagation Neural Network
 * Linear Regression
 * Least Square Classification
+* Support Vector Machine (SVM)

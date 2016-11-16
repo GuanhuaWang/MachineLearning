@@ -1,8 +1,8 @@
 import scipy.io
 import numpy
 import csv
-from sklearn import svm 
-from sklearn.metrics import confusion_matrix 
+#from sklearn import svm 
+#from sklearn.metrics import confusion_matrix 
 import matplotlib.pylab as plt
 import math
 %matplotlib inline

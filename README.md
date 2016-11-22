@@ -8,4 +8,5 @@ The dataset we use is MNIST and also classic Spam dataset
 * Linear Regression
 * Least Square Classification
 * Support Vector Machine (SVM)
-* Start implementing Decision Tree
+* Decision Tree & Random Forest
+* Kernel Tricks

@@ -9,4 +9,4 @@ The dataset we use is MNIST and also classic Spam dataset
 * Least Square Classification
 * Support Vector Machine (SVM)
 * Decision Tree & Random Forest
-* Kernel Tricks
+* Kernel Tricks (Gaussian and Polynomial)

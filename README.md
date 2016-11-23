@@ -6,7 +6,9 @@ The dataset we use is MNIST and also classic Spam dataset
 * Logistic Regression
 * Back Propagation Neural Network
 * Linear Regression
+* Ridge Regression
 * Least Square Classification
 * Support Vector Machine (SVM)
 * Decision Tree & Random Forest
 * Kernel Tricks (Gaussian and Polynomial)
+

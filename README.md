@@ -12,4 +12,4 @@ The dataset we use is MNIST and also classic Spam dataset
 * Decision Tree & Random Forest
 * Kernel Tricks (Gaussian and Polynomial)
 * Kmeans
-
+* PCA

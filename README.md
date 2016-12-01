@@ -13,3 +13,4 @@ The dataset we use is MNIST and also classic Spam dataset
 * Kernel Tricks (Gaussian and Polynomial)
 * Kmeans (Lloyd's algorithm)
 * Priciple Component analysis (PCA)
+* Latent Factor Model

@@ -12,5 +12,5 @@ The dataset we use is MNIST and also classic Spam dataset
 * Decision Tree & Random Forest
 * Kernel Tricks (Gaussian and Polynomial)
 * Kmeans (Lloyd's algorithm)
-* Priciple Component analysis (PCA)
-* Latent Factor Model
+* Priciple Component analysis (PCA) with Latent Factor Model
+* MSE for joker recommendation

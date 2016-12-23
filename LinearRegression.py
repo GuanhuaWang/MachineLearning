@@ -1,97 +1,98 @@
+from mnist import MNIST
+import sklearn.metrics as metrics
 import numpy as np
-import matplotlib.pyplot as plt
+import scipy
+import math
 
-def data_std(xtrain):
-    return ((xtrain - np.mean(xtrain, axis=0)) / np.std(xtrain, axis=0))
+NUM_CLASSES = 10
 
-xx = np.array([4,5,5.6,6.8,7,7.2,8,0.8,1,1.2,2.5,2.6,3,4.3])
-nox = np.array([1,1,1,1,1,1,1,1,1,1,1,1,1,1])
-nox2=nox.reshape(14,1)
-xxx = data_std(xx)
-xxxx = xxx.reshape(14,1)
-x = np.concatenate((xxxx, nox2),1)
-x = np.append(x, np.array([[3,1]]), axis=0)
-yy = np.array([1,1,1,1,1,1,1,0,0,0,0,0,0,0,1])
-y=yy.reshape(15,1)
-la = 0.07
-b = np.array([1,0])
-b0 = b.reshape(2,1)
-#========================Logistic regression with Newton=========================#
-u0 = 1/(1+np.exp(np.dot(x,-b0)))
-pl0=plt.scatter(x[:,0], u0,color='r',marker='+')
+def load_dataset():
+    mndata = MNIST('./data/')
+    X_train, labels_train = map(np.array, mndata.load_training())
+    X_test, labels_test = map(np.array, mndata.load_testing())
+    X_train = X_train/255.0
+    X_test = X_test/255.0
+    return (X_train, labels_train), (X_test, labels_test)
 
 
-W = np.zeros((15, 15))
-for i in range (15):
-    W[i][i] = u0[i]*(1-u0[i])
-    
-x2 = np.linalg.inv(2*la*np.identity(2)+np.dot((np.dot(x.T,W)),x))
+def train(X_train, y_train, reg=0):
+    ''' Build a model from X_train -> y_train '''
+    xtx = X_train.T.dot(X_train)
+    return scipy.linalg.solve(xtx + reg*np.eye(xtx.shape[0]), X_train.T.dot(y_train), sym_pos=True)
 
-x1 =(2*la*b0-np.dot(x.T,y-u0))
+def train_gd(X_train, y_train, alpha=0.1, reg=0, num_iter=10000):
+    ''' Build a model from X_train -> y_train using batch gradient descent '''
+    xTrans = X_train.transpose() #5000*60000
+    m=X_train.shape[0]
+    theta = np.ones((X_train.shape[1],y_train.shape[1]))
+    for i in range(0, num_iter):
+        guess = np.dot(X_train, theta)
+        loss = guess - y_train
+        cost = np.sum(loss ** 2) / (2 * m)
+        print("Iteration %d | Cost: %f" % (i, cost))
+        gradient = np.dot(xTrans, loss) / m
+        theta = theta - alpha * gradient
+    return theta
 
-b1 = b0-np.dot(x2,x1)
-print b1
+def train_sgd(X_train, y_train, alpha=0.1, reg=0, num_iter=100000):
+    ''' Build a model from X_train -> y_train using stochastic gradient descent '''
+    m=X_train.shape[0]
+    theta = np.ones((X_train.shape[1],y_train.shape[1]))
+    for i in range(0, num_iter):
+        j = i%m
+        guess = np.dot(X_train[j], theta)
+        loss = guess - y_train[j]
+        losstran=np.reshape(loss,(1,10))
+        cost = np.sum(loss ** 2) / (2 * m)
+        print("Iteration %d | Cost: %f" % (i, cost))
+        xTrans=X_train[j].transpose()
+        xTrans1=np.reshape(xTrans,(5000,1))
+        gradient = np.dot(xTrans1, losstran) / m
+        theta = theta - alpha * gradient
+    return theta
 
-u1 = 1/(1+np.exp(np.dot(x,-b1)))
-pl1=plt.scatter(x[:,0], u1,color='g',marker='*')
+def one_hot(labels_train):
+    '''Convert categorical labels 0,1,2,....9 to standard basis vectors in R^{10} '''
+    return np.eye(NUM_CLASSES)[labels_train]
 
-W1 = np.zeros((15, 15))
-for i in range (15):
-    W1[i][i] = u1[i]*(1-u1[i])
-x22 = np.linalg.inv(2*la*np.identity(2)+np.dot((np.dot(x.T,W1)),x))
+def predict(model, X):
+    ''' From model and data points, output prediction vectors '''
+    return np.argmax(X.dot(model), axis=1)
 
-x12 =(2*la*b1-np.dot(x.T,y-u1))
+def phi(X):
+    ''' Featurize the inputs using random Fourier features '''
+    mu, sigma = 0, 5
+    G = np.random.normal(mu, sigma, (X.shape[1],5000))
+    b = np.random.uniform(0, 2*math.pi,5000)
+    X1 = np.dot(X,G)
+    for i in range(X1.shape[0]):
+        X1[i]=np.cos(X1[i]+b)
+    return X1
 
-b2 = b1-np.dot(x22,x12)
-print b2
-u2 = 1/(1+np.exp(np.dot(x,-b2)))
-pl2=plt.scatter(x[:,0], u2,color='k',marker='s')
 
-W2 = np.zeros((15, 15))
-for i in range (15):
-    W2[i][i] = u2[i]*(1-u2[i])
-x23 = np.linalg.inv(2*la*np.identity(2)+np.dot((np.dot(x.T,W2)),x))
+if __name__ == "__main__":
+    (X_train, labels_train), (X_test, labels_test) = load_dataset()
+    y_train = one_hot(labels_train)
+    y_test = one_hot(labels_test)
+    X_train, X_test = phi(X_train), phi(X_test)
 
-x13 =(2*la*b2-np.dot(x.T,y-u2))
+    model = train(X_train, y_train, reg=0.1)
+    pred_labels_train = predict(model, X_train)
+    pred_labels_test = predict(model, X_test)
+    print("Closed form solution")
+    print("Train accuracy: {0}".format(metrics.accuracy_score(labels_train, pred_labels_train)))
+    print("Test accuracy: {0}".format(metrics.accuracy_score(labels_test, pred_labels_test)))
 
-b3 = b2-np.dot(x23,x13)
-print b3
-u3 = 1/(1+np.exp(np.dot(x,-b3)))
-pl3 = plt.scatter(x[:,0], u3)
+    model = train_gd(X_train, y_train, alpha=1e-3, reg=0.1, num_iter=50000)
+    pred_labels_train = predict(model, X_train)
+    pred_labels_test = predict(model, X_test)
+    print("Batch gradient descent")
+    print("Train accuracy: {0}".format(metrics.accuracy_score(labels_train, pred_labels_train)))
+    print("Test accuracy: {0}".format(metrics.accuracy_score(labels_test, pred_labels_test)))
 
-plt.legend((pl0, pl1, pl2,pl3),
-           ('u0', 'u1', 'u2', 'u3'),
-           scatterpoints=1,
-           loc='upper left',
-           ncol=4,
-           fontsize=12)
-plt.show()
-
-#======================Linear regression with Newton============================#
-line_x2 = np.linalg.inv(2*la*np.identity(2)+np.dot(x.T,x))
-
-line_x1 =(2*la*b0-np.dot(x.T,y-np.dot(x,b0)))
-plt.scatter(x[:,0], yy,color='r',marker='+')
-b1 = b0-np.dot(line_x2,line_x1)
-print b1
-#b11=b1
-#b11[0]=(-1/b1[0])
-#decision boundary
-#plt.plot(x[:,0],np.dot(x,b11),color='b')
-plt.plot(x[:,0],np.dot(x,b1),color='b')
-plt.show()
-
-#================Logistic fit, Linear fit, Original data========================#
-fig, ax = plt.subplots()
-ax.scatter(x[:,0], yy,color='r',marker='+',label='Data Points')
-
-t = np.arange(-1.5, 1.5, 0.1)
-xplot = np.zeros((30,2))
-for i in range(0,30):
-    xplot[i][0]=t[i]
-    xplot[i][1]=1
-ax.plot(xplot[:,0], 1/(1+np.exp(np.dot(xplot,-b3))),'g--',label='Logistic fit')
-
-ax.plot(x[:,0],np.dot(x,b1),color='b',label='Linear fit')
-legend = ax.legend(loc='upper left', shadow=True)
-plt.show()
+    model = train_sgd(X_train, y_train, alpha=1e-3, reg=0.1, num_iter=1000000)
+    pred_labels_train = predict(model, X_train)
+    pred_labels_test = predict(model, X_test)
+    print("Stochastic gradient descent")
+    print("Train accuracy: {0}".format(metrics.accuracy_score(labels_train, pred_labels_train)))
+    print("Test accuracy: {0}".format(metrics.accuracy_score(labels_test, pred_labels_test)))

@@ -3,10 +3,11 @@ Some simple machine learning functions are implemented
 ## DataSet
 The dataset we use is MNIST and also classic Spam dataset
 ## Functions that we implemented
+* Linear Regression
 * Logistic Regression
 * Back Propagation Neural Network
-* Linear Regression
 * Ridge Regression
+* Linear & Logistic Regression with Newton method
 * Least Square Classification
 * Support Vector Machine (SVM)
 * Decision Tree & Random Forest

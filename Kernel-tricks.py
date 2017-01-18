@@ -94,7 +94,7 @@ h = np.dot(k_plot,a)
 h = h.reshape(xx.shape)
 
 plt.contourf(xx, yy, h,cmap=plt.cm.gray_r)'''
-#============gaussian contour plot===============#
+#============gaussian contour plot===============# this is used for ploting the figures
 scale=0.5
 x_min, x_max = x[:, 0].min()-1, x[:, 0].max()+1
 y_min, y_max = x[:, 1].min()-1, x[:, 1].max()+1

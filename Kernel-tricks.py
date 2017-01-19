@@ -1,3 +1,5 @@
+#This project is used for leveraging polynomial and gaussian kernel to predict label.
+
 import numpy as np
 import math
 import matplotlib.pyplot as plt

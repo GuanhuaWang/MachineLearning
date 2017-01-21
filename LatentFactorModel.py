@@ -1,3 +1,5 @@
+#latent factor model for joke recommendation.
+
 import scipy.io
 import scipy as sp
 import numpy as np
